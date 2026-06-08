@@ -1,0 +1,618 @@
+/* --- 1. GLOBAL ROOT STYLE RESETS --- */
+html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100%;
+    height: 100%;
+    background-color: #020205; /* True obsidian dark canvas */
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+}
+
+*, *::before, *::after {
+    box-sizing: border-box !important;
+}
+
+/* Master container sizing constraint layer */
+.app-shell {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    background-color: #020205;
+    overflow: hidden;
+}
+
+/* --- 2. FIXED NAVIGATION SIDEBAR --- */
+.sidebar {
+    width: 280px;
+    background-color: #09090F; /* Elevated dark card shade */
+    border-right: 1px solid #1E293B;
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem 1.25rem;
+    flex-shrink: 0;
+    height: 100%;
+}
+
+.sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 2.5rem;
+    padding-left: 0.5rem;
+}
+
+.brand-icon {
+    background-color: #38BDF8; /* Minimal clean blue accent */
+    color: #0F172A;
+    font-weight: 800;
+    font-size: 0.85rem;
+    padding: 0.4rem 0.6rem;
+    border-radius: 4px;
+    letter-spacing: -0.01em;
+}
+
+.brand-text h3 {
+    color: #F8FAFC;
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.brand-text p {
+    color: #64748B;
+    font-size: 0.75rem;
+    margin: 0;
+}
+
+.sidebar-section-label {
+    color: #475569;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.75rem;
+    padding-left: 0.5rem;
+}
+
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-bottom: 2rem;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.7rem 0.75rem;
+    color: #94A3B8;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.nav-item svg {
+    flex-shrink: 0;
+}
+
+.nav-item:hover {
+    color: #F8FAFC;
+    background-color: #1E293B;
+}
+
+.nav-item.active {
+    color: #38BDF8;
+    background-color: rgba(56, 189, 248, 0.06);
+    border: 1px solid rgba(56, 189, 248, 0.15);
+}
+
+.sidebar-divider {
+    height: 1px;
+    background-color: #1E293B;
+    margin: 1rem 0 1.5rem 0;
+}
+
+/* --- 3. SIDEBAR PEERS COMPONENT --- */
+.node-card {
+    background-color: #0F172A;
+    border: 1px solid #1E293B;
+    border-radius: 6px;
+    padding: 1rem;
+}
+
+.nc-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #64748B;
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+}
+
+.node-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.node-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.node-item-name {
+    font-size: 0.8rem;
+    color: #cbd5e1;
+    font-weight: 500;
+}
+
+.node-dot {
+    width: 6px;
+    height: 6px;
+    background-color: #10B981;
+    border-radius: 50%;
+}
+
+.sidebar-bottom {
+    margin-top: auto;
+    padding-top: 1rem;
+}
+
+.sidebar-user {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background-color: #020207;
+    padding: 0.75rem;
+    border-radius: 6px;
+    border: 1px solid #1E293B;
+}
+
+.user-avatar {
+    width: 32px;
+    height: 32px;
+    background-color: #334155;
+    color: #F8FAFC;
+    font-size: 0.75rem;
+    font-weight: 700;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.user-info {
+    flex-grow: 1;
+    overflow: hidden;
+    text-align: left;
+}
+
+.u-name {
+    color: #F8FAFC;
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.u-role {
+    color: #64748B;
+    font-size: 0.7rem;
+    font-weight: 500;
+}
+
+.logout-icon-btn {
+    background: transparent;
+    border: none;
+    color: #64748B;
+    cursor: pointer;
+    padding: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s ease;
+}
+
+.logout-icon-btn:hover {
+    color: #EF4444;
+}
+
+/* --- 4. MAIN WORKSPACE VIEWPORT --- */
+.main-content {
+    flex-grow: 1;
+    height: 100%;
+    padding: 2rem 2.5rem;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    flex-shrink: 0;
+    text-align: left;
+}
+
+.top-bar h1 {
+    color: #F8FAFC;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0 0 0.25rem 0;
+    letter-spacing: -0.02em;
+}
+
+.tb-sub {
+    color: #64748B;
+    font-size: 0.85rem;
+    margin: 0;
+}
+
+.status-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: rgba(16, 185, 129, 0.06);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    color: #10B981;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.status-pill-dot {
+    width: 6px;
+    height: 6px;
+    background-color: #10B981;
+    border-radius: 50%;
+}
+
+/* --- 5. DATA CARD STRIP PANEL --- */
+.metrics-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    flex-shrink: 0;
+}
+
+.metric-card {
+    background-color: #09090F;
+    border: 1px solid #1E293B;
+    border-radius: 6px;
+    padding: 1.5rem;
+    position: relative;
+    overflow: hidden;
+    text-align: left;
+}
+
+.mc-val {
+    color: #F8FAFC;
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+    letter-spacing: -0.02em;
+}
+
+.mc-label {
+    color: #64748B;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.mc-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    width: 100%;
+}
+.mc-bar.blue { background-color: #38BDF8; }
+.mc-bar.teal { background-color: #0D9488; }
+.mc-bar.green { background-color: #10B981; }
+
+/* --- 6. CORE LEDGER HISTORICAL TABLE --- */
+.ledger-panel {
+    background-color: #09090F;
+    border: 1px solid #1E293B;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    overflow: hidden;
+}
+
+.ledger-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid #1E293B;
+    text-align: left;
+    flex-shrink: 0;
+}
+
+.ledger-header h2 {
+    color: #F8FAFC;
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0 0 0.15rem 0;
+}
+
+.lh-count {
+    color: #64748B;
+    font-size: 0.8rem;
+}
+
+.ledger-badge {
+    background-color: rgba(56, 189, 248, 0.08);
+    color: #38BDF8;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    border: 1px solid rgba(56, 189, 248, 0.2);
+}
+
+.ledger-scroll {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 1rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+/* --- 7. TRANSACTION ITEM ROW LAYOUT --- */
+.txn-row {
+    display: flex;
+    align-items: center;
+    background-color: #020205;
+    border: 1px solid #1E293B;
+    border-radius: 6px;
+    padding: 1rem 1.25rem;
+    gap: 1.5rem;
+    transition: border-color 0.15s ease;
+}
+
+.txn-row:hover {
+    border-color: #334155;
+}
+
+.txn-arrow-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(56, 189, 248, 0.05);
+    padding: 0.5rem;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.txn-main {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    text-align: left;
+}
+
+.txn-parties {
+    color: #F8FAFC;
+    font-size: 0.9rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.txn-arrow {
+    color: #475569;
+    font-weight: 400;
+}
+
+.txn-parties .recv {
+    color: #E2E8F0;
+}
+
+.txn-hash {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    color: #475569;
+    font-size: 0.75rem;
+    letter-spacing: 0.02em;
+}
+
+.txn-amount-col {
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.txn-amount {
+    color: #F8FAFC;
+    font-weight: 700;
+    font-size: 1.05rem;
+    letter-spacing: -0.01em;
+}
+
+.txn-currency {
+    color: #475569;
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.txn-secure {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #64748B;
+    border: 1px solid #334155;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+}
+
+/* --- 8. EMPTY ARRAY STATE PLATFORM --- */
+.ledger-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    color: #475569;
+    font-style: italic;
+    font-size: 0.9rem;
+    margin: auto 0;
+}
+
+/* --- 9. PRODUCTION ENTERPRISE LOGIN PORTAL --- */
+.login-root {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: #020205;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.login-card {
+    background-color: #09090F;
+    border: 1px solid #1E293B;
+    border-radius: 8px;
+    padding: 3rem 2.5rem;
+    width: 100%;
+    max-width: 420px;
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.login-logo {
+    color: #38BDF8;
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin-bottom: 1.5rem;
+    letter-spacing: -0.03em;
+}
+
+.login-card h2 {
+    color: #F8FAFC;
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin: 0 0 0.35rem 0;
+}
+
+.login-card .sub {
+    color: #64748B;
+    font-size: 0.85rem;
+    margin: 0 0 2rem 0;
+}
+
+.field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    margin-bottom: 2rem;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.field label {
+    color: #94A3B8;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.field input {
+    background-color: #020205;
+    border: 1px solid #1E293B;
+    color: #F8FAFC;
+    padding: 0.8rem 1rem;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.15s ease;
+}
+
+.field input:focus {
+    border-color: #38BDF8;
+}
+
+.login-btn {
+    background-color: #F8FAFC;
+    color: #020205;
+    border: none;
+    padding: 0.9rem;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.login-btn:hover {
+    background-color: #E2E8F0;
+}
+
+.login-error {
+    color: #EF4444;
+    background-color: rgba(239, 68, 68, 0.06);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.login-divider {
+    text-align: center;
+    margin-top: 2rem;
+    position: relative;
+}
+
+.login-divider::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background-color: #1E293B;
+    z-index: 1;
+}
+
+.login-divider span {
+    background-color: #09090F;
+    color: #475569;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0 0.75rem;
+    position: relative;
+    z-index: 2;
+}
