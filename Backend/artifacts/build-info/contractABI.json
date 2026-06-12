@@ -8,6 +8,31 @@
 		"anonymous": false,
 		"inputs": [
 			{
+				"indexed": true,
+				"internalType": "bytes32",
+				"name": "role",
+				"type": "bytes32"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "sender",
+				"type": "address"
+			}
+		],
+		"name": "RoleGranted",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
 				"indexed": false,
 				"internalType": "string",
 				"name": "sender",
@@ -40,39 +65,43 @@
 			{
 				"indexed": false,
 				"internalType": "uint256",
-				"name": "timestamp",
+				"name": "timeStamp",
 				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "bytes32",
+				"name": "txnHash",
+				"type": "bytes32"
 			}
 		],
-		"name": "Transfer",
+		"name": "TransactionRecorded",
 		"type": "event"
 	},
 	{
-		"inputs": [
+		"inputs": [],
+		"name": "ADMIN_ROLE",
+		"outputs": [
 			{
-				"internalType": "string",
-				"name": "sender",
-				"type": "string"
-			},
-			{
-				"internalType": "string",
-				"name": "receiver",
-				"type": "string"
-			},
-			{
-				"internalType": "address",
-				"name": "to",
-				"type": "address"
-			},
-			{
-				"internalType": "uint256",
-				"name": "amount",
-				"type": "uint256"
+				"internalType": "bytes32",
+				"name": "",
+				"type": "bytes32"
 			}
 		],
-		"name": "transferTo",
-		"outputs": [],
-		"stateMutability": "nonpayable",
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "BANK_NODE_ROLE",
+		"outputs": [
+			{
+				"internalType": "bytes32",
+				"name": "",
+				"type": "bytes32"
+			}
+		],
+		"stateMutability": "view",
 		"type": "function"
 	},
 	{
@@ -114,6 +143,11 @@
 				"internalType": "uint256",
 				"name": "timeStamp",
 				"type": "uint256"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "transactionHash",
+				"type": "bytes32"
 			}
 		],
 		"stateMutability": "view",
@@ -154,6 +188,11 @@
 						"internalType": "uint256",
 						"name": "timeStamp",
 						"type": "uint256"
+					},
+					{
+						"internalType": "bytes32",
+						"name": "transactionHash",
+						"type": "bytes32"
 					}
 				],
 				"internalType": "struct BoB.Transactions[]",
@@ -181,6 +220,57 @@
 			}
 		],
 		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "role",
+				"type": "bytes32"
+			},
+			{
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			}
+		],
+		"name": "grantRole",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "sender",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "receiver",
+				"type": "string"
+			},
+			{
+				"internalType": "address",
+				"name": "to",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "txnHash",
+				"type": "bytes32"
+			}
+		],
+		"name": "transferTo",
+		"outputs": [],
+		"stateMutability": "nonpayable",
 		"type": "function"
 	}
 ]

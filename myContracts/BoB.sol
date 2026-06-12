@@ -12,7 +12,7 @@ contract BoB {
         address toBank;
         uint256 amount;
         uint256 timeStamp;
-        string transactionHash;
+        bytes32 transactionHash;
     }
 
     mapping(bytes32 => mapping(address => bool)) private _roles;
@@ -20,7 +20,7 @@ contract BoB {
     Transactions[] public allTransactions;
 
     event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender);
-    event Transfer(string sender, string receiver, address indexed fromBank, address indexed toBank, uint256 amount, uint256 timestamp, string txnHash);
+    event TransactionRecorded(string sender, string receiver, address indexed fromBank, address indexed toBank, uint256 amount, uint256 timestamp, bytes32 indexed txnHash);
 
     modifier onlyRole(bytes32 role) {
         require(_roles[role][msg.sender], "RBAC: Auth Failure - Account lacks required role");
@@ -43,7 +43,7 @@ contract BoB {
         string memory receiver, 
         address to, 
         uint256 amount, 
-        string memory txnHash
+        bytes32 txnHash
     ) public onlyRole(BANK_NODE_ROLE) {
         require(balances[msg.sender] >= amount, "Insufficient balance !!");
 
@@ -59,7 +59,7 @@ contract BoB {
 
         balances[msg.sender] -= amount;
         balances[to] += amount;
-        emit Transfer(sender, receiver, msg.sender, to, amount, block.timestamp, txnHash);
+        emit TransactionRecorded(sender, receiver, msg.sender, to, amount, block.timestamp, txnHash);
     }
 
     function allTxns() public view onlyRole(BANK_NODE_ROLE) returns (Transactions[] memory) {

@@ -1,6 +1,10 @@
 import axios from "axios";
 import { useState, useEffect } from "react";
+import { ethers } from "ethers";
+import { io } from "socket.io-client";
 import "./Dashboard.css";
+
+const socket = io("http://localhost:5001", { autoConnect: false });
 
 export default function Dashboard() {
     const [txns, setTxn] = useState([]);
@@ -24,7 +28,56 @@ export default function Dashboard() {
             setOperatorEmail(savedEmail || "");
             fetchLedgerHistory(token);
         }
-    }, []);
+    }, []); 
+    
+
+    // --- FIXED: A Single, Unified WebSocket Connection & Event Listener Hook ---
+    useEffect(() => {
+        if (!isAuthenticated) return;
+
+        // 1. Establish the network pipe connection once
+        console.log("Connecting to Interbank Core WebSocket...");
+        socket.connect();
+
+        socket.on("connect", () => {
+            console.log("Socket connected:", socket.id);
+        });
+
+        socket.on("disconnect", () => {
+            console.log("Socket disconnected");
+        });
+
+        // 2. Define a stable, fresh incoming packet handler
+        const handleIncomingTxn = (newLiveTxn) => {
+            console.log("Live WebSocket data packet received from compliance hub:", newLiveTxn);
+            
+            setTxn((prevTxns) => {
+                // Functional state updater guarantees we check against the freshest state array
+                const isDuplicate = prevTxns.some(
+                    (t) => t.hash === newLiveTxn.hash && Number(t.timeStamp) === Number(newLiveTxn.timeStamp)
+                );
+                
+                if (isDuplicate) {
+                    console.log("Duplicate row filtered out.");
+                    return prevTxns;
+                }
+                
+                console.log("Pushing new live row into dashboard matrix.");
+                return [newLiveTxn, ...prevTxns];
+            });
+        };
+
+        // 3. Attach the event channel listener
+        socket.on("new_transaction", handleIncomingTxn);
+
+        // 4. Safe Cleanup: Only clear out the pipe when logging out or completely closing the browser tab
+        return () => {
+            console.log("Tearing down terminal network bridges...");
+            socket.off("new_transaction", handleIncomingTxn);
+            socket.disconnect();
+        };
+    }, [isAuthenticated]); // ◄ NOTICE: 'txns' is REMOVED from the dependency array completely.
+
 
     async function handleLogin(e) {
         e.preventDefault();
@@ -165,7 +218,6 @@ export default function Dashboard() {
                 </div>
             </aside>
 
-            {/* MAIN */}
             <main className="main-content">
                 <div className="top-bar">
                     <div>
@@ -218,8 +270,8 @@ export default function Dashboard() {
                                 <span>No transaction entries on this ledger stream</span>
                             </div>
                         ) : (
-                            [...txns].reverse().map((txn, index) => (
-                                <div key={index} className="txn-row">
+                            txns.map((txn, index) => (
+                                <div key={`${txn.hash}-${txn.timeStamp}`} className="txn-row">
                                     <div className="txn-arrow-indicator">
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline><polyline points="16 7 22 7 22 13"></polyline></svg>
                                     </div>

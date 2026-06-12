@@ -19,6 +19,7 @@
     "ether": "^0.0.9",
     "ethers": "^6.16.0",
     "express": "^5.2.1",
-    "jsonwebtoken": "^9.0.3"
+    "jsonwebtoken": "^9.0.3",
+    "socket.io": "^4.8.3"
   }
 }
