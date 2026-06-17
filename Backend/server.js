@@ -6,6 +6,10 @@ import jwt from "jsonwebtoken";
 import { Server } from "socket.io";
 import { ethers } from "ethers";
 import ABI from "./artifacts/build-info/contractABI.json" with { type: 'json' };
+import bcrypt from "bcrypt";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
 
 dotenv.config();
 const app = express();
@@ -25,14 +29,6 @@ provider.on("error", (err) => {
 
 const contractAdd = process.env.CONTRACT_ADDRESS;
 const BoBcontract = new ethers.Contract(contractAdd, ABI, provider);
-
-console.log("Listening on contract:", contractAdd);
-
-
-const AUTHORIZED_BANK_STAFF_DATABASE = {
-    "audit@sbi.co.in": { pass: "sbi123", role: "BANK_AUDITOR", bank: "SBI" },
-    "compliance@hdfc.com": { pass: "hdfc123", role: "BANK_AUDITOR", bank: "HDFC" }
-};
 
 io.on("connection", (socket) => {
     console.log("Client connected:", socket.id);
@@ -109,16 +105,53 @@ function maskVPA(value) {
     return hasAt ? `${masked}@${handle}` : masked;
 }
 
-app.post("/api/v1/auth/login", (req, res) => {
+app.post("/api/v1/auth/login", async (req, res) => {
     const { email, password } = req.body;
-    const user = AUTHORIZED_BANK_STAFF_DATABASE[email];
 
-    if (!user || user.pass !== password) {
-        return res.status(401).json({ error: "Invalid bank administrator credentials" });
+    try {
+        const user = await prisma.auditor.findUnique({
+            where: { email }
+        });
+
+        if (!user) {
+            return res.status(401).json({
+                error: "Invalid bank administrator credentials"
+            });
+        }
+
+        const validPassword = await bcrypt.compare(
+            password,
+            user.password
+        );
+
+        if (!validPassword) {
+            return res.status(401).json({
+                error: "Invalid bank administrator credentials"
+            });
+        }
+
+        const token = jwt.sign(
+            {
+                email: user.email,
+                role: user.role,
+                bank: user.bank
+            },
+            JWT_SECRET,
+            { expiresIn: "1h" }
+        );
+
+        res.json({
+            token,
+            role: user.role,
+            bank: user.bank
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({
+            error: "Database error"
+        });
     }
-
-    const token = jwt.sign({ email, role: user.role, bank: user.bank }, JWT_SECRET, { expiresIn: "1h" });
-    return res.json({ token, role: user.role, bank: user.bank });
 });
 
 app.get("/api/v1/history", verifyBankRole("BANK_AUDITOR"), async (req, res) => {
@@ -129,8 +162,6 @@ app.get("/api/v1/history", verifyBankRole("BANK_AUDITOR"), async (req, res) => {
         const txns = await BoBcontract.allTxns();
         
         const formattedTxns = txns.map((txn) => {
-            const isParticipant = (txn.fromBank === requestingBank || txn.toBank === requestingBank);
-            
             let visualHash;
             try {
                 visualHash = ethers.decodeBytes32String(txn.transactionHash);
