@@ -20,7 +20,7 @@ async function main() {
         data: {
             email: "compliance@hdfc.com",
             password: hdfcPassword,
-            role: "BANK_AUDITOR",
+            role: Role.BANK_AUDITOR,
             bank: "HDFC"
         }
     });

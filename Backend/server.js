@@ -6,15 +6,37 @@ import jwt from "jsonwebtoken";
 import { Server } from "socket.io";
 import { ethers } from "ethers";
 import ABI from "./artifacts/build-info/contractABI.json" with { type: 'json' };
+import crypto from "crypto";
 import bcrypt from "bcrypt";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+
+async function logAction({ email, role, action, status, req }) {
+    try {
+        await prisma.auditLog.create({
+            data: {
+                email: email || "UNKNOWN",
+                role: role || "UNKNOWN",
+                action,
+                status,
+                ipAddress:
+                    req.headers["x-forwarded-for"]?.split(",")[0] ||
+                    req.socket.remoteAddress
+            }
+        });
+    } catch (err) {
+        console.error("Audit log failed:", err.message);
+    }
+}
+
+
 dotenv.config();
 const app = express();
 app.use(express.json());
 app.use(cors());
+app.use(auditMiddleware);
 
 const PORT = 5001;
 const JWT_SECRET = process.env.JWT_Secret;
@@ -42,6 +64,7 @@ io.on("connection", (socket) => {
     });
 });
 
+
 BoBcontract.on("TransactionRecorded", (sender, receiver, fromBank, toBank, amount, timeStamp, txnHash, event) => {
     console.log("New consortium block mined! Alerting all connected client dashboards...");
     
@@ -65,25 +88,82 @@ BoBcontract.on("TransactionRecorded", (sender, receiver, fromBank, toBank, amoun
     });
 });
 
-function verifyBankRole(requiredRole) {
-    return (req, res, next) => {
+
+async function auditMiddleware(req, res, next) {
+    const skipPaths = ["/api/v1/auth/login", "/health"];
+
+    if (skipPaths.includes(req.originalUrl)) {
+        return next();
+    }
+
+    const start = Date.now();
+
+    res.on("finish", async () => {
+        const duration = Date.now() - start;
+
+        try {
+            await prisma.auditLog.create({
+                data: {
+                    email: req.bankContext?.email || "UNKNOWN",
+                    role: req.bankContext?.role || "UNKNOWN",
+                    action: `${req.method} ${req.originalUrl}`,
+                    status: res.statusCode < 400 ? "SUCCESS" : "FAILED",
+                    ipAddress:
+                        req.headers["x-forwarded-for"]?.split(",")[0] ||
+                        req.socket.remoteAddress,
+                }
+            });
+
+            console.log(
+                `[AUDIT] ${req.method} ${req.originalUrl} -> ${res.statusCode} (${duration}ms)`
+            );
+        } catch (err) {
+            console.error("Audit log failed:", err.message);
+        }
+    });
+
+    next();
+}
+
+
+function verifyBankRole(allowedRoles) {
+    return async (req, res, next) => {
         const authHeader = req.headers["authorization"];
         const token = authHeader && authHeader.split(" ")[1];
 
-        if (!token) return res.status(401).json({ error: "Access Denied: Missing Token" });
+        if (!token) {
+            return res.status(401).json({
+                error: "Access Denied: Missing Token"
+            });
+        }
 
-        jwt.verify(token, JWT_SECRET, (err, decodedUser) => {
-            if (err) return res.status(403).json({ error: "Token expired or altered" });
-            
-            if (decodedUser.role !== requiredRole) {
-                return res.status(403).json({ error: "Forbidden: Deficient Clearance Role" });
+        jwt.verify(token, JWT_SECRET, async (err, decodedUser) => {
+            if (err) {
+                return res.status(403).json({
+                    error: "Token expired or altered"
+                });
             }
 
-            req.bankContext = decodedUser; 
+            if (!allowedRoles.includes(decodedUser.role)) {
+                await logAction({
+                    email: decodedUser?.email,
+                    role: decodedUser?.role,
+                    action: "AUTH_FAILED_ROLE_DENIED",
+                    status: "FAILED",
+                    req
+                });
+
+                return res.status(403).json({
+                    error: "Forbidden: Insufficient Permissions"
+                });
+            }
+
+            req.bankContext = decodedUser;
             next();
         });
     };
 }
+
 
 function maskVPA(value) {
     if (!value) return "XXXXXX";
@@ -105,6 +185,39 @@ function maskVPA(value) {
     return hasAt ? `${masked}@${handle}` : masked;
 }
 
+
+app.post("/api/v1/admin/create-user", verifyBankRole(["BANK_ADMIN", "SUPER_ADMIN"]), async (req, res) => {
+    try {
+        const { email, role, bank } = req.body;
+
+        const tempPassword = crypto.randomBytes(4).toString("hex"); 
+
+        const hashedPassword = await bcrypt.hash(tempPassword, 10);
+
+        const user = await prisma.auditor.create({
+            data: {
+                email,
+                password: hashedPassword,
+                role,
+                bank,
+                mustChangePassword: true,
+            },
+        });
+
+        res.json({
+            message: "User created successfully",
+            tempPassword,
+            email,
+            role,
+            userId: user.id,
+        });
+    } catch (err) {
+        res.status(500).json({ error: "User creation failed" });
+    }
+  }
+);
+
+
 app.post("/api/v1/auth/login", async (req, res) => {
     const { email, password } = req.body;
 
@@ -124,9 +237,15 @@ app.post("/api/v1/auth/login", async (req, res) => {
             user.password
         );
 
+
         if (!validPassword) {
-            return res.status(401).json({
-                error: "Invalid bank administrator credentials"
+            return res.status(401).json({ error: "Invalid credentials" });
+        }
+
+        if (user.mustChangePassword) {
+            return res.json({
+                mustChangePassword: true,
+                userId: user.id,
             });
         }
 
@@ -154,7 +273,55 @@ app.post("/api/v1/auth/login", async (req, res) => {
     }
 });
 
-app.get("/api/v1/history", verifyBankRole("BANK_AUDITOR"), async (req, res) => {
+
+app.post("/api/v1/auth/change-password", async (req, res) => {
+    try {
+        const { email, tempPassword, newPassword } = req.body;
+
+        const user = await prisma.auditor.findUnique({
+            where: { email }
+        });
+
+        if (!user) {
+            return res.status(404).json({
+                error: "User not found"
+            });
+        }
+
+        const validTempPassword = await bcrypt.compare(
+            tempPassword,
+            user.password
+        );
+
+        if (!validTempPassword) {
+            return res.status(401).json({
+                error: "Invalid temporary password"
+            });
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        await prisma.auditor.update({
+            where: { email },
+            data: {
+                password: hashedPassword,
+                mustChangePassword: false
+            }
+        });
+
+        res.json({
+            message: "Password updated successfully"
+        });
+
+    } catch (err) {
+        res.status(500).json({
+            error: "Password update failed"
+        });
+    }
+});
+
+
+app.get("/api/v1/history", verifyBankRole(["BANK_AUDITOR", "BANK_ADMIN", "SUPER_ADMIN"]), async (req, res) => {
     try {
         const requestingBank = req.bankContext.bank; 
         console.log(`Auditing access granted to: ${req.bankContext.email} from ${requestingBank}`);
@@ -187,4 +354,9 @@ app.get("/api/v1/history", verifyBankRole("BANK_AUDITOR"), async (req, res) => {
 
 server.listen(PORT, () => {
     console.log(`Interbank Blockchain Audit Server active on port ${PORT}`);
+});
+
+process.on("SIGINT", async () => {
+    await prisma.$disconnect();
+    process.exit(0);
 });

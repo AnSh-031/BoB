@@ -14,6 +14,11 @@ export default function Dashboard() {
     const [authError, setAuthError] = useState("");
     const [activeBank, setActiveBank] = useState("");
     const [operatorEmail, setOperatorEmail] = useState("");
+    const [mustChangePassword, setMustChangePassword] = useState(false);
+    const [userId, setUserId] = useState(null);
+
+    const [newPassword, setNewPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
 
     const totalTransactions = txns ? txns.length : 0;
     const totalVolume = txns ? txns.reduce((sum, txn) => sum + parseFloat(txn.amount || 0), 0) : 0;
@@ -30,12 +35,9 @@ export default function Dashboard() {
         }
     }, []); 
     
-
-    // --- FIXED: A Single, Unified WebSocket Connection & Event Listener Hook ---
     useEffect(() => {
         if (!isAuthenticated) return;
 
-        // 1. Establish the network pipe connection once
         console.log("Connecting to Interbank Core WebSocket...");
         socket.connect();
 
@@ -47,12 +49,10 @@ export default function Dashboard() {
             console.log("Socket disconnected");
         });
 
-        // 2. Define a stable, fresh incoming packet handler
         const handleIncomingTxn = (newLiveTxn) => {
             console.log("Live WebSocket data packet received from compliance hub:", newLiveTxn);
             
             setTxn((prevTxns) => {
-                // Functional state updater guarantees we check against the freshest state array
                 const isDuplicate = prevTxns.some(
                     (t) => t.hash === newLiveTxn.hash && Number(t.timeStamp) === Number(newLiveTxn.timeStamp)
                 );
@@ -67,16 +67,14 @@ export default function Dashboard() {
             });
         };
 
-        // 3. Attach the event channel listener
         socket.on("new_transaction", handleIncomingTxn);
 
-        // 4. Safe Cleanup: Only clear out the pipe when logging out or completely closing the browser tab
         return () => {
             console.log("Tearing down terminal network bridges...");
             socket.off("new_transaction", handleIncomingTxn);
             socket.disconnect();
         };
-    }, [isAuthenticated]); // ◄ NOTICE: 'txns' is REMOVED from the dependency array completely.
+    }, [isAuthenticated]);
 
 
     async function handleLogin(e) {
@@ -84,6 +82,13 @@ export default function Dashboard() {
         setAuthError("");
         try {
             const res = await axios.post("http://localhost:5001/api/v1/auth/login", { email, password });
+
+            if (res.data.mustChangePassword) {
+                setMustChangePassword(true);
+                setUserId(res.data.userId);
+                return;
+            }
+
             localStorage.setItem("bank_token", res.data.token);
             localStorage.setItem("bank_name", res.data.bank);
             localStorage.setItem("bank_email", email);
@@ -118,8 +123,94 @@ export default function Dashboard() {
         setOperatorEmail("");
     }
 
+
+    async function handlePasswordChange(e) {
+        e.preventDefault();
+
+        if (newPassword !== confirmPassword) {
+            alert("Passwords do not match");
+            return;
+        }
+
+        try {
+            await axios.post(
+                "http://localhost:5001/api/v1/auth/change-password",
+                {
+                    userId,
+                    newPassword
+                }
+            );
+
+            alert(
+                "Password changed successfully. Please login again."
+            );
+
+            setMustChangePassword(false);
+            setUserId(null);
+
+            setEmail("");
+            setPassword("");
+            setNewPassword("");
+            setConfirmPassword("");
+
+        } catch (err) {
+            alert("Password update failed");
+        }
+    }
+
+
     const initials = operatorEmail ? operatorEmail.substring(0, 2).toUpperCase() : "OP";
     const bankShort = activeBank ? activeBank.substring(0, 2).toUpperCase() : "BK";
+
+
+    if (mustChangePassword) {
+        return (
+            <div className="login-root">
+                <form
+                    onSubmit={handlePasswordChange}
+                    className="login-card"
+                >
+                    <h2>First Login Security Setup</h2>
+
+                    <p className="sub">
+                        You must change your temporary password.
+                    </p>
+
+                    <div className="field">
+                        <label>New Password</label>
+                        <input
+                            type="password"
+                            value={newPassword}
+                            onChange={(e) =>
+                                setNewPassword(e.target.value)
+                            }
+                            required
+                        />
+                    </div>
+
+                    <div className="field">
+                        <label>Confirm Password</label>
+                        <input
+                            type="password"
+                            value={confirmPassword}
+                            onChange={(e) =>
+                                setConfirmPassword(e.target.value)
+                            }
+                            required
+                        />
+                    </div>
+
+                    <button
+                        type="submit"
+                        className="login-btn"
+                    >
+                        Update Password
+                    </button>
+                </form>
+            </div>
+        );
+    }
+
 
     if (!isAuthenticated) {
         return (
