@@ -246,6 +246,7 @@ app.post("/api/v1/auth/login", async (req, res) => {
             return res.json({
                 mustChangePassword: true,
                 userId: user.id,
+                email: user.email
             });
         }
 
@@ -276,7 +277,7 @@ app.post("/api/v1/auth/login", async (req, res) => {
 
 app.post("/api/v1/auth/change-password", async (req, res) => {
     try {
-        const { email, tempPassword, newPassword } = req.body;
+        const { email, newPassword } = req.body;
 
         const user = await prisma.auditor.findUnique({
             where: { email }
@@ -285,17 +286,6 @@ app.post("/api/v1/auth/change-password", async (req, res) => {
         if (!user) {
             return res.status(404).json({
                 error: "User not found"
-            });
-        }
-
-        const validTempPassword = await bcrypt.compare(
-            tempPassword,
-            user.password
-        );
-
-        if (!validTempPassword) {
-            return res.status(401).json({
-                error: "Invalid temporary password"
             });
         }
 
@@ -351,6 +341,24 @@ app.get("/api/v1/history", verifyBankRole(["BANK_AUDITOR", "BANK_ADMIN", "SUPER_
         res.status(500).json({ error: err.message });
     }
 });
+
+
+app.get("/api/v1/audit-logs", verifyBankRole(["BANK_ADMIN", "SUPER_ADMIN"]), async (req, res) => {
+    try {
+        const logs = await prisma.auditLog.findMany({
+            orderBy: {
+                createdAt: "desc"
+            }
+        });
+
+        res.json(logs);
+    } catch (err) {
+        res.status(500).json({
+            error: "Failed to fetch audit logs"
+        });
+    }
+});
+
 
 server.listen(PORT, () => {
     console.log(`Interbank Blockchain Audit Server active on port ${PORT}`);

@@ -1,47 +1,68 @@
-import Dashboard from "./Components/Dashboard";
+import { useEffect, useState } from "react";
+
+import Login from "./Pages/Login";
+import ChangePassword from "./Pages/ChangePassword";
+import Dashboard from "./Pages/Dashboard";
 
 function App() {
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [mustChangePassword, setMustChangePassword] = useState(false);
+
+    const [email, setEmail] = useState("");
+    const [activeBank, setActiveBank] = useState("");
+    const [operatorEmail, setOperatorEmail] = useState("");
+    const [role, setRole] = useState("");
+
+    const [currentPage, setCurrentPage] = useState("dashboard");
+
+    useEffect(() => {
+        const token = localStorage.getItem("bank_token");
+        const savedBank = localStorage.getItem("bank_name");
+        const savedEmail = localStorage.getItem("bank_email");
+        const savedRole = localStorage.getItem("bank_role");
+
+        if (token) {
+            setIsAuthenticated(true);
+            setActiveBank(savedBank || "");
+            setOperatorEmail(savedEmail || "");
+            setRole(savedRole || "");
+        }
+    }, []);
+
+    if (mustChangePassword) {
+        return (
+            <ChangePassword
+                email={email}
+                setMustChangePassword={setMustChangePassword}
+            />
+        );
+    }
+
+    if (!isAuthenticated) {
+        return (
+            <Login
+                setIsAuthenticated={setIsAuthenticated}
+                setMustChangePassword={setMustChangePassword}
+                setEmail={setEmail}
+                setActiveBank={setActiveBank}
+                setOperatorEmail={setOperatorEmail}
+                setRole={setRole}
+            />
+        );
+    }
+
     return (
-        <div style={appStyles.appWrapper}>
-            <div style={appStyles.appMainframe}>
-                <header style={appStyles.appHeader}>
-                    <h1 style={appStyles.brandTitle}>Terminal Dashboard</h1>
-                </header>
-                <Dashboard />
-            </div>
-        </div>
+        <Dashboard
+            activeBank={activeBank}
+            operatorEmail={operatorEmail}
+            role={role}
+            currentPage={currentPage}
+            setCurrentPage={setCurrentPage}
+            setIsAuthenticated={setIsAuthenticated}
+            setActiveBank={setActiveBank}
+            setOperatorEmail={setOperatorEmail}
+        />
     );
 }
-
-const appStyles = {
-    appWrapper: {
-        backgroundColor: "#f1f5f9",
-        minHeight: "100vh",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "flex-start",
-        padding: "4rem 2rem",
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        boxSizing: "border-box",
-    },
-    appMainframe: {
-        width: "100%",
-        maxWidth: "1000px",
-        display: "flex",
-        flexDirection: "column",
-        gap: "1.5rem",
-    },
-    appHeader: {
-        borderBottom: "1px solid #cbd5e1",
-        paddingBottom: "0.75rem",
-        marginBottom: "0.5rem",
-    },
-    brandTitle: {
-        fontSize: "1.35rem",
-        fontWeight: "700",
-        color: "#0f172a",
-        margin: 0,
-    }
-};
 
 export default App;

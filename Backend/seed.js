@@ -4,24 +4,15 @@ import bcrypt from "bcrypt";
 const prisma = new PrismaClient();
 
 async function main() {
-    const sbiPassword = await bcrypt.hash("sbi123", 10);
+    const barodaPassword = await bcrypt.hash("baroda123", 10);
     const hdfcPassword = await bcrypt.hash("hdfc123", 10);
 
     await prisma.auditor.create({
         data: {
-            email: "audit@sbi.co.in",
-            password: sbiPassword,
-            role: "BANK_AUDITOR",
-            bank: "SBI"
-        }
-    });
-
-    await prisma.auditor.create({
-        data: {
-            email: "compliance@hdfc.com",
-            password: hdfcPassword,
-            role: Role.BANK_AUDITOR,
-            bank: "HDFC"
+            email: "audit@baroda.co.in",
+            password: barodaPassword,
+            role: "BANK_ADMIN",
+            bank: "Bank of Baroda"
         }
     });
 
