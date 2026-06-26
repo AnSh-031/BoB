@@ -1,6 +1,7 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { io } from "socket.io-client";
+import AuditLogs from "./AuditLogs";
 
 import Sidebar from "../Components/Sidebar";
 import History from "./History";
@@ -143,6 +144,17 @@ export default function Dashboard({
         };
     }, []);
 
+
+    useEffect(() => {
+        if (
+            role === "BANK_OPERATOR" &&
+            currentPage === "auditLogs"
+        ) {
+            setCurrentPage("dashboard");
+        }
+    }, [role, currentPage]);
+
+
     async function fetchLedgerHistory(
         token
     ) {
@@ -193,9 +205,9 @@ export default function Dashboard({
             "bank_role"
         );
 
-        setIsAuthenticated(
-            false
-        );
+        setCurrentPage("dashboard");
+
+        setIsAuthenticated(false);
 
         setTxn([]);
 
@@ -239,18 +251,18 @@ export default function Dashboard({
                 }
             />
 
-            <History
-                txns={txns}
-                activeBank={
-                    activeBank
-                }
-                totalTransactions={
-                    totalTransactions
-                }
-                totalVolume={
-                    totalVolume
-                }
-            />
+            {currentPage === "dashboard" && (
+                <History
+                    txns={txns}
+                    activeBank={activeBank}
+                    totalTransactions={totalTransactions}
+                    totalVolume={totalVolume}
+                />
+            )}
+
+            {currentPage === "auditLogs" && (
+                <AuditLogs />
+            )}
         </div>
     );
 }

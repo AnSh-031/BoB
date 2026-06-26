@@ -90,7 +90,17 @@ BoBcontract.on("TransactionRecorded", (sender, receiver, fromBank, toBank, amoun
 
 
 async function auditMiddleware(req, res, next) {
-    const skipPaths = ["/api/v1/auth/login", "/health"];
+    if (req.method === "GET") {
+        return next();
+    }
+    
+    const skipPaths = [
+        "/api/v1/auth/login",
+        "/api/v1/auth/change-password",
+        "/api/v1/admin/create-user",
+        "/api/v1/history",
+        "/api/v1/audit-logs",
+    ];
 
     if (skipPaths.includes(req.originalUrl)) {
         return next();
@@ -186,7 +196,7 @@ function maskVPA(value) {
 }
 
 
-app.post("/api/v1/admin/create-user", verifyBankRole(["BANK_ADMIN", "SUPER_ADMIN"]), async (req, res) => {
+app.post("/api/v1/admin/create-user", verifyBankRole(["BANK_ADMIN"]), async (req, res) => {
     try {
         const { email, role, bank } = req.body;
 
@@ -202,6 +212,14 @@ app.post("/api/v1/admin/create-user", verifyBankRole(["BANK_ADMIN", "SUPER_ADMIN
                 bank,
                 mustChangePassword: true,
             },
+        });
+
+        await logAction({
+            email: req.bankContext.email,
+            role: req.bankContext.role,
+            action: `USER_CREATED:${email}`,
+            status: "SUCCESS",
+            req
         });
 
         res.json({
@@ -227,6 +245,14 @@ app.post("/api/v1/auth/login", async (req, res) => {
         });
 
         if (!user) {
+            await logAction({
+                email,
+                role: "UNKNOWN",
+                action: "LOGIN_FAILED",
+                status: "FAILED",
+                req
+            });
+
             return res.status(401).json({
                 error: "Invalid bank administrator credentials"
             });
@@ -239,6 +265,14 @@ app.post("/api/v1/auth/login", async (req, res) => {
 
 
         if (!validPassword) {
+            await logAction({
+                email,
+                role: user.role,
+                action: "LOGIN_FAILED",
+                status: "FAILED",
+                req
+            });
+
             return res.status(401).json({ error: "Invalid credentials" });
         }
 
@@ -260,6 +294,14 @@ app.post("/api/v1/auth/login", async (req, res) => {
             { expiresIn: "1h" }
         );
 
+        await logAction({
+            email: user.email,
+            role: user.role,
+            action: "LOGIN_SUCCESS",
+            status: "SUCCESS",
+            req
+        });
+
         res.json({
             token,
             role: user.role,
@@ -277,7 +319,7 @@ app.post("/api/v1/auth/login", async (req, res) => {
 
 app.post("/api/v1/auth/change-password", async (req, res) => {
     try {
-        const { email, newPassword } = req.body;
+        const { email, tempPassword, newPassword } = req.body;
 
         const user = await prisma.auditor.findUnique({
             where: { email }
@@ -289,6 +331,17 @@ app.post("/api/v1/auth/change-password", async (req, res) => {
             });
         }
 
+        const isValid = await bcrypt.compare(
+            tempPassword,
+            user.password
+        )
+
+        if(!isValid) {
+            return res.status(401).json({
+                error: "Invalid temporary password"
+            });
+        }
+
         const hashedPassword = await bcrypt.hash(newPassword, 10);
 
         await prisma.auditor.update({
@@ -297,6 +350,14 @@ app.post("/api/v1/auth/change-password", async (req, res) => {
                 password: hashedPassword,
                 mustChangePassword: false
             }
+        });
+
+        await logAction({
+            email,
+            role: user.role,
+            action: "PASSWORD_CHANGED",
+            status: "SUCCESS",
+            req
         });
 
         res.json({
@@ -311,7 +372,7 @@ app.post("/api/v1/auth/change-password", async (req, res) => {
 });
 
 
-app.get("/api/v1/history", verifyBankRole(["BANK_AUDITOR", "BANK_ADMIN", "SUPER_ADMIN"]), async (req, res) => {
+app.get("/api/v1/history", verifyBankRole(["BANK_AUDITOR", "BANK_ADMIN", "BANK_OPERATOR"]), async (req, res) => {
     try {
         const requestingBank = req.bankContext.bank; 
         console.log(`Auditing access granted to: ${req.bankContext.email} from ${requestingBank}`);
@@ -343,7 +404,7 @@ app.get("/api/v1/history", verifyBankRole(["BANK_AUDITOR", "BANK_ADMIN", "SUPER_
 });
 
 
-app.get("/api/v1/audit-logs", verifyBankRole(["BANK_ADMIN", "SUPER_ADMIN"]), async (req, res) => {
+app.get("/api/v1/audit-logs", verifyBankRole(["BANK_ADMIN", "BANK_AUDITOR"]), async (req, res) => {
     try {
         const logs = await prisma.auditLog.findMany({
             orderBy: {

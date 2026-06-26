@@ -47,6 +47,7 @@ function App() {
                 setActiveBank={setActiveBank}
                 setOperatorEmail={setOperatorEmail}
                 setRole={setRole}
+                setCurrentPage={setCurrentPage}
             />
         );
     }

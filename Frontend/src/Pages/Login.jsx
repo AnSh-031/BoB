@@ -8,7 +8,8 @@ export default function Login({
     setEmail,
     setActiveBank,
     setOperatorEmail,
-    setRole
+    setRole,
+    setCurrentPage
 }) {
     const [email, updateEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -55,6 +56,8 @@ export default function Login({
             );
 
             setIsAuthenticated(true);
+
+            setCurrentPage("dashboard");
 
             setActiveBank(res.data.bank);
 
