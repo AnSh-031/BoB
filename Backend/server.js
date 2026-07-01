@@ -406,13 +406,27 @@ app.get("/api/v1/history", verifyBankRole(["BANK_AUDITOR", "BANK_ADMIN", "BANK_O
 
 app.get("/api/v1/audit-logs", verifyBankRole(["BANK_ADMIN", "BANK_AUDITOR"]), async (req, res) => {
     try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+
+        const skip = (page-1) * limit;
+
         const logs = await prisma.auditLog.findMany({
             orderBy: {
                 createdAt: "desc"
-            }
+            },
+            skip,
+            take : limit
         });
+        
+        const totalLogs = await prisma.auditLog.count();
 
-        res.json(logs);
+        res.json({
+            logs,
+            totalLogs,
+            currentPage : page,
+            totalPages : Math.ceil(totalLogs / limit)
+        });
     } catch (err) {
         res.status(500).json({
             error: "Failed to fetch audit logs"

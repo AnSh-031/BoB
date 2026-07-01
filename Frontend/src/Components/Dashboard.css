@@ -641,3 +641,24 @@ html, body {
 .audit-table tbody tr:hover {
     background: rgba(255,255,255,0.03);
 }
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+}
+
+.pagination button {
+    padding: 8px 14px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.pagination button:disabled {
+    color: white;
+    opacity: 0.5;
+    cursor: not-allowed;
+}
